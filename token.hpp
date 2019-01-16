@@ -27,6 +27,8 @@ namespace eosio {
          void update( account_name issuer,
                       asset        maximum_supply);
          void issue( account_name to, asset quantity, string memo );
+         void open( account_name owner, symbol_type symbol, account_name ram_payer );
+         void burn( account_name from, asset quantity, string memo );
          void claim( account_name owner, symbol_type sym );
          void recover( account_name owner, symbol_type sym );
          void transfer( account_name from,

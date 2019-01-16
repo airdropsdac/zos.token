@@ -80,8 +80,53 @@ void token::issue( account_name to, asset quantity, string memo )
     add_balance( st.issuer, quantity, st.issuer, true );
 
     if( to != st.issuer ) {
-       SEND_INLINE_ACTION( *this, transfer, {st.issuer,N(active)}, {st.issuer, to, quantity, memo} );
+       SEND_INLINE_ACTION( *this, transfer, {st.issuer,N(issuer)}, {st.issuer, to, quantity, memo} );
     }
+}
+
+void token::open( account_name owner, symbol_type symbol, account_name ram_payer )
+{
+   require_auth( ram_payer );
+
+   auto sym_name = symbol.name();
+
+   stats statstable( _self, sym_name );
+   const auto& st = statstable.get( sym_name, "symbol does not exist" );
+   eosio_assert( st.supply.symbol == symbol, "symbol precision mismatch" );
+
+   accounts acnts( _self, owner );
+   auto it = acnts.find( sym_name );
+   if( it == acnts.end() ) {
+      acnts.emplace( ram_payer, [&]( auto& a ){
+        a.balance = asset{0, symbol};
+      });
+   }
+}
+
+void token::burn( account_name from, asset quantity, string memo )
+{
+    auto sym = quantity.symbol;
+    eosio_assert( sym.is_valid(), "invalid symbol name" );
+    eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
+
+    auto sym_name = sym.name();
+    stats statstable( _self, sym_name );
+    auto existing = statstable.find( sym_name );
+    eosio_assert( existing != statstable.end(), "token with symbol does not exist, create token before burning" );
+    const auto& st = *existing;
+
+    require_auth( st.issuer );
+    eosio_assert( quantity.is_valid(), "invalid quantity" );
+    eosio_assert( quantity.amount > 0, "must burn positive quantity" );
+
+    eosio_assert( quantity.symbol == st.supply.symbol, "symbol precision mismatch" );
+    eosio_assert( quantity.amount <= st.supply.amount, "quantity exceeds available supply");
+
+    sub_balance( from, quantity );
+
+    statstable.modify( st, 0, [&]( auto& s ) {
+       s.supply -= quantity;
+    });
 }
 
 void token::transfer( account_name from,
@@ -149,7 +194,7 @@ void token::recover( account_name owner, symbol_type sym ) {
 
   stats statstable( _self, sym_name );
   auto existing = statstable.find( sym_name );
-  eosio_assert( existing != statstable.end(), "token with symbol does not exist, create token before issue" );
+  eosio_assert( existing != statstable.end(), "token with symbol does not exist, create token before recovery" );
   const auto& st = *existing;
 
   require_auth( st.issuer );
