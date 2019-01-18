@@ -122,7 +122,19 @@ void token::burn( account_name from, asset quantity, string memo )
     eosio_assert( quantity.symbol == st.supply.symbol, "symbol precision mismatch" );
     eosio_assert( quantity.amount <= st.supply.amount, "quantity exceeds available supply");
 
-    sub_balance( from, quantity );
+    accounts from_acnts( _self, from );
+
+    const auto& row = from_acnts.get( quantity.symbol.name(), "no balance object found" );
+    eosio_assert( row.balance.amount >= quantity.amount, "overdrawn balance" );
+
+
+    if( row.balance.amount == quantity.amount ) {
+       from_acnts.erase( row );
+    } else {
+       from_acnts.modify( row, _self, [&]( auto& a ) {
+           a.balance -= quantity;
+       });
+    }
 
     statstable.modify( st, 0, [&]( auto& s ) {
        s.supply -= quantity;
@@ -244,4 +256,4 @@ void token::add_balance( account_name owner, asset value, account_name ram_payer
 
 } /// namespace eosio
 
-EOSIO_ABI( eosio::token, (create)(update)(issue)(transfer)(claim)(recover) )
+EOSIO_ABI( eosio::token, (create)(update)(issue)(transfer)(claim)(recover)(burn)(open) )

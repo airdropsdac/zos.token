@@ -202,6 +202,16 @@
       "name": "update",
       "type": "update",
       "ricardian_contract": ""
+    },
+    {
+      "name": "open",
+      "type": "open",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "burn",
+      "type": "burn",
+      "ricardian_contract": ""
     }
   ],
   "tables": [
