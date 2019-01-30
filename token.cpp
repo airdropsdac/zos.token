@@ -183,7 +183,7 @@ void token::do_claim( account_name owner, symbol_type sym, account_name payer ) 
   accounts owner_acnts( _self, owner );
 
   const auto& existing = owner_acnts.get( sym_name, "no balance object found" );
-  if( !existing.claimed ) {
+  if( existing.claimed ) { //this had to be reversed because airdrop mistake
     //save the balance
     auto value = existing.balance;
     //erase the table freeing ram to the issuer
@@ -195,7 +195,7 @@ void token::do_claim( account_name owner, symbol_type sym, account_name payer ) 
     //add the new claimed balance paid by owner
     owner_acnts.emplace( payer, [&]( auto& a ){
       a.balance = value;
-      a.claimed = true;
+      a.claimed = false; //this had to be reversed because airdrop mistake
     });
   }
 }
@@ -215,7 +215,7 @@ void token::recover( account_name owner, symbol_type sym ) {
   accounts owner_acnts( _self, owner );
   auto owned = owner_acnts.find( sym_name );
   if( owned != owner_acnts.end() ) {
-    if( !owned->claimed ) {
+    if( owned->claimed ) { //this had to be reversed because airdrop mistake
       sub_balance( owner, owned->balance );
       add_balance( st.issuer, owned->balance, st.issuer, true );
     }
@@ -245,7 +245,7 @@ void token::add_balance( account_name owner, asset value, account_name ram_payer
    if( to == to_acnts.end() ) {
       to_acnts.emplace( ram_payer, [&]( auto& a ){
         a.balance = value;
-        a.claimed = claimed;
+        a.claimed = !claimed; //this had to be reversed because airdrop mistake
       });
    } else {
       to_acnts.modify( to, 0, [&]( auto& a ) {
