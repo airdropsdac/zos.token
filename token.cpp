@@ -150,7 +150,8 @@ void token::do_claim( name owner, const symbol& sym, name payer ) {
   accounts owner_acnts( _self, owner.value );
 
   const auto& existing = owner_acnts.get( sym_code_raw, "no balance object found" );
-  if( !existing.claimed ) {
+  // TODO: what is this? In standard claimable-token this is the negation !owned->claimed
+  if( existing.claimed ) { //this had to be reversed because airdrop mistake
     //save the balance
     auto value = existing.balance;
     //erase the table freeing ram to the issuer
@@ -162,7 +163,8 @@ void token::do_claim( name owner, const symbol& sym, name payer ) {
     //add the new claimed balance paid by owner
     owner_acnts.emplace( payer, [&]( auto& a ){
       a.balance = value;
-      a.claimed = true;
+      // TODO: what is this? In standard claimable-token this is the negation !owned->claimed
+      a.claimed = false; //this had to be reversed because airdrop mistake
     });
   }
 }
@@ -256,4 +258,4 @@ void token::add_balance( name owner, asset value, name ram_payer, bool claimed )
 
 } /// namespace eosio
 
-EOSIO_DISPATCH(eosio::token, (create)(update)(issue)(transfer)(claim)(recover)(burn)(open) )
+EOSIO_DISPATCH(eosio::token, (create)(update)(issue)(transfer)(claim)(recover)(burn)(open)(close) )
